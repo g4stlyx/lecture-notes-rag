@@ -1,0 +1,40 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Source corpus may contain private/copyrighted material
+data/**
+!data/.gitkeep
+
+# Generated runtime artifacts
+runtime/*/*
+!runtime/*/.gitkeep
+evals/reports/*
+!evals/reports/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Node/frontend
+node_modules/
+frontend/dist/
+.vite/
+coverage/
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
