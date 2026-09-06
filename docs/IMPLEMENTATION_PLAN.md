@@ -1,8 +1,14 @@
 # Lecture Notes RAG — Implementation Plan
 
-Status: architecture and execution plan only  
+Status: MVP implementation in progress — Phase 0–4 code scaffold completed; Phase 5 hardening remains  
 Last updated: 2026-09-06  
 Corpus snapshot: 225 files (222 PDF, 3 Markdown), approximately 354.53 MB
+
+Implementation note: the repository now contains the API, React client, pgvector
+migration, local Compose definition, and unit coverage described in this plan.
+Refer to `docs/LOCAL_DEVELOPMENT.md` for startup and validation commands. A full
+corpus ingestion has intentionally not been run during setup because it sends
+document chunks to Gemini and consumes the configured account's quota.
 
 ## 1. Goal
 
@@ -462,4 +468,3 @@ These are experiments, not reasons to block scaffolding:
 - Gemini embeddings: <https://ai.google.dev/gemini-api/docs/embeddings>
 - Gemini File Search: <https://ai.google.dev/gemini-api/docs/file-search>
 - Google Gen AI Python SDK: <https://googleapis.github.io/python-genai/>
-

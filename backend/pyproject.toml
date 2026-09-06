@@ -1,0 +1,44 @@
+[project]
+name = "lecture-notes-rag-api"
+version = "0.1.0"
+description = "Citation-first RAG API for a private lecture-note corpus"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "google-genai>=1.0",
+  "pgvector>=0.3",
+  "psycopg[binary]>=3.2",
+  "pydantic-settings>=2.6",
+  "PyMuPDF>=1.24",
+  "sqlalchemy>=2.0",
+  "uvicorn[standard]>=0.30",
+]
+
+[dependency-groups]
+dev = [
+  "alembic>=1.14",
+  "httpx>=0.28",
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "ruff>=0.8",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["B008"] # FastAPI's dependency injection uses Depends(...) in signatures.
+
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lecture_notes_rag"]

@@ -1,0 +1,52 @@
+:root {
+  color: #e8edf8;
+  background: #0b1120;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, textarea, select { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .62; }
+a { color: inherit; }
+
+.app-shell { min-height: 100vh; background: radial-gradient(circle at 18% 2%, #1f315d 0, transparent 30%), #0b1120; }
+.topbar { height: 72px; border-bottom: 1px solid #26334c; display: flex; align-items: center; justify-content: space-between; padding: 0 5.5vw; }
+.brand { color: #f5f8ff; text-decoration: none; font-size: 1.08rem; font-weight: 750; letter-spacing: -.03em; }
+.brand span { color: #85b5ff; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84em; letter-spacing: .05em; }
+.indexing-control { display: flex; align-items: center; gap: 12px; }
+.secondary-button, .scope-row button { border: 1px solid #5074b2; border-radius: 9px; color: #f5f8ff; background: #3569c8; padding: 9px 14px; font-weight: 650; }
+.secondary-button { font-size: .82rem; background: transparent; border-color: #3e5278; }
+.job-status { font-size: .78rem; color: #b9c6de; text-transform: capitalize; }
+.job-completed { color: #8fe0b5; }.job-failed { color: #ffadad; }
+.top-error { margin: 13px 5.5vw 0; color: #ffb6b6; font-size: .9rem; }
+
+.workspace { width: min(1480px, 100%); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 42px; padding: 76px 5.5vw; }
+.chat-panel { max-width: 840px; }
+.eyebrow { margin: 0 0 10px; color: #8eaddd; font-size: .69rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+.hero h1 { margin: 0; font-size: clamp(2.2rem, 4vw, 4.4rem); line-height: .98; letter-spacing: -.065em; color: #fafcff; }
+.hero > p:last-child { max-width: 590px; color: #b7c2d7; font-size: 1.06rem; line-height: 1.65; margin: 22px 0 36px; }
+.question-form { padding: 15px; border: 1px solid #344463; border-radius: 16px; background: rgba(17, 28, 50, .82); box-shadow: 0 14px 40px rgba(0, 0, 0, .16); }
+.question-form textarea { width: 100%; resize: vertical; min-height: 106px; color: #edf3ff; background: transparent; border: 0; outline: 0; line-height: 1.5; padding: 6px; }
+.question-form textarea::placeholder { color: #7f8da7; }
+.scope-row { border-top: 1px solid #2b3a57; padding: 12px 5px 2px; display: flex; align-items: end; gap: 11px; }
+.scope-row label { color: #91a1bc; display: grid; gap: 5px; font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+.scope-row select { min-width: 138px; color: #dce6f7; border: 1px solid #354868; border-radius: 6px; background: #111d34; padding: 7px 8px; font-size: .8rem; text-transform: none; }
+.scope-row button { margin-left: auto; }
+.error-message { margin: 18px 0; color: #ffb6b6; }
+
+.answer-card { margin-top: 27px; padding: 28px; border: 1px solid #314566; border-radius: 16px; background: linear-gradient(145deg, rgba(23, 37, 66, .92), rgba(15, 25, 44, .92)); }
+.answer-heading { display: flex; justify-content: space-between; align-items: start; gap: 12px; }.answer-heading .eyebrow { margin-bottom: 0; }
+.grounded, .ungrounded { padding: 5px 9px; border-radius: 20px; font-size: .72rem; font-weight: 700; }.grounded { color: #8fe0b5; background: #153c31; }.ungrounded { color: #ffc787; background: #4a3421; }
+.answer-text { margin: 23px 0 28px; color: #e9eef9; white-space: pre-wrap; font-size: 1rem; line-height: 1.72; }
+.sources { padding-top: 21px; border-top: 1px solid #31405b; }.sources > .eyebrow { margin-bottom: 13px; }
+.source-card { margin-top: 10px; padding: 15px; border-radius: 10px; background: #0e192d; }.source-title-row { display: flex; gap: 9px; align-items: baseline; font-size: .91rem; font-weight: 700; }.source-title-row a { color: #a9caff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.citation-label { color: #83b0ff; font-family: ui-monospace, monospace; }.source-meta { margin: 8px 0; color: #91a1bc; font-size: .76rem; }.source-excerpt { margin: 0; color: #c3cde0; font-size: .82rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }.answer-footer { margin: 18px 0 0; color: #71809a; font-size: .72rem; }
+
+.library-panel { align-self: start; padding: 20px; border: 1px solid #293a59; border-radius: 14px; background: rgba(13, 23, 42, .72); }.library-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }.library-heading h2 { margin: 0; font-size: 1.15rem; letter-spacing: -.03em; }.ready-count { color: #90deb4; font-size: .76rem; }.status-summary { display: flex; gap: 11px; margin: 16px 0; padding: 11px 0; border-bottom: 1px solid #293a59; border-top: 1px solid #293a59; color: #8492aa; font-size: .7rem; }.document-list { max-height: 590px; overflow-y: auto; }.document-row { display: grid; grid-template-columns: 8px 1fr; gap: 10px; padding: 10px 1px; border-bottom: 1px solid #1e2c45; }.document-row p { margin: 0 0 3px; color: #d7e0ef; font-size: .8rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }.document-row span:not(.status-dot) { color: #8290a8; font-size: .67rem; }.status-dot { width: 7px; height: 7px; margin-top: 4px; border-radius: 99px; background: #6e7b91; }.status-ready { background: #65d595; }.status-failed { background: #ff7878; }.status-processing { background: #e4ba5d; }.empty-state { color: #8492aa; font-size: .82rem; line-height: 1.5; }
+
+@media (max-width: 980px) { .workspace { grid-template-columns: 1fr; padding-top: 48px; }.chat-panel { max-width: none; }.library-panel { order: 2; }.document-list { max-height: 300px; } }
+@media (max-width: 640px) { .topbar { padding: 0 20px; }.workspace { padding: 38px 20px; }.job-status { display: none; }.scope-row { align-items: stretch; flex-wrap: wrap; }.scope-row label { flex: 1 1 130px; }.scope-row button { margin-left: 0; width: 100%; }.hero h1 { font-size: 2.7rem; } }
+
