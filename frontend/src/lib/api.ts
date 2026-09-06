@@ -28,7 +28,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function listDocuments(): Promise<DocumentListResponse> {
-  return request<DocumentListResponse>("/documents?pageSize=100");
+  return request<DocumentListResponse>("/documents?pageSize=500");
 }
 
 export function createIngestionJob(force = false): Promise<IngestionJob> {
@@ -49,4 +49,3 @@ export function askQuestion(payload: ChatRequest): Promise<ChatResponse> {
 function isDetailResponse(value: unknown): value is { detail: string } {
   return typeof value === "object" && value !== null && "detail" in value && typeof value.detail === "string";
 }
-

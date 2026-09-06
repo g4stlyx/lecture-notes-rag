@@ -53,6 +53,12 @@ before selecting **Index corpus**. Indexing sends chunk text to Gemini to create
 embeddings and will consume API quota; it is deliberately never triggered at
 application startup.
 
+On Gemini's free tier, corpus indexing is intentionally rate-limited. If Gemini
+returns a quota response without a usable retry window, the job is shown as
+**paused** instead of failing the rest of the corpus. Start indexing again after
+the quota resets: unchanged ready documents are skipped and only outstanding
+documents are retried.
+
 ## Verification commands
 
 ```powershell
@@ -70,4 +76,3 @@ The ingestion service detects weak native PDF extraction and tries OCRmyPDF when
 it is available on `PATH`. Install OCRmyPDF plus Tesseract before running a
 corpus with scans. Without it, readable native PDF text is still indexed and
 weak/scanned documents remain visible through their extraction quality/status.
-

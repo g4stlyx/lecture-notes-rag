@@ -67,6 +67,9 @@ export function App() {
         </div>
       </header>
       {error && <p className="top-error" role="alert">{error}</p>}
+      {job?.status === "paused" && job.errorSummary && (
+        <p className="top-error" role="status">{job.errorSummary}</p>
+      )}
       <div className="workspace">
         <ChatPanel documents={documents} />
         <LibraryPanel documents={documents} loading={loading} />
@@ -74,4 +77,3 @@ export function App() {
     </div>
   );
 }
-

@@ -16,9 +16,12 @@ export function ChatPanel({ documents }: ChatPanelProps) {
   const [isAsking, setIsAsking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const readyDocuments = documents.filter((document) => document.status === "ready");
+  const selectedSemester = semester ? Number(semester) : undefined;
   const courses = [
     ...new Set(
-      documents
+      readyDocuments
+        .filter((document) => selectedSemester === undefined || document.semester === selectedSemester)
         .map((document) => document.course)
         .filter((value): value is string => Boolean(value)),
     ),
@@ -67,7 +70,13 @@ export function ChatPanel({ documents }: ChatPanelProps) {
         <div className="scope-row">
           <label>
             Semester
-            <select value={semester} onChange={(event) => setSemester(event.target.value)}>
+            <select
+              value={semester}
+              onChange={(event) => {
+                setSemester(event.target.value);
+                setCourse("");
+              }}
+            >
               <option value="">All semesters</option>
               {Array.from({ length: 8 }, (_, index) => index + 1).map((value) => (
                 <option key={value} value={value}>Semester {value}</option>
@@ -76,16 +85,27 @@ export function ChatPanel({ documents }: ChatPanelProps) {
           </label>
           <label>
             Course
-            <select value={course} onChange={(event) => setCourse(event.target.value)}>
-              <option value="">All courses</option>
+            <select
+              value={course}
+              disabled={courses.length === 0}
+              onChange={(event) => setCourse(event.target.value)}
+            >
+              <option value="">
+                {courses.length === 0 ? "No indexed courses" : "All courses"}
+              </option>
               {courses.map((value) => <option key={value} value={value}>{value}</option>)}
             </select>
           </label>
-          <button type="submit" disabled={isAsking || !question.trim()}>
-            {isAsking ? "Grounding answer…" : "Ask notes"}
+          <button type="submit" disabled={isAsking || !question.trim() || readyDocuments.length === 0}>
+            {isAsking ? "Grounding answer…" : readyDocuments.length === 0 ? "Index corpus first" : "Ask notes"}
           </button>
         </div>
       </form>
+      {readyDocuments.length === 0 && (
+        <p className="indexing-hint">
+          No indexed notes are available yet. Start <strong>Index corpus</strong> before asking a question.
+        </p>
+      )}
 
       {error && <p className="error-message" role="alert">{error}</p>}
       {response && (

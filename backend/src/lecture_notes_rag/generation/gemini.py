@@ -8,16 +8,26 @@ from typing import Any
 
 from google import genai
 from google.genai import types
+from google.genai.errors import ClientError
 
 from lecture_notes_rag.core.settings import Settings
 from lecture_notes_rag.domain.schemas import GeminiAnswerDraft
 
 _JSON_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
 _CITATION_MARKER = re.compile(r"\[(S\d+)]")
+_RETRY_DELAY = re.compile(r"retry(?:\s+in|Delay[^0-9]*)([0-9]+(?:\.[0-9]+)?)s", re.IGNORECASE)
 
 
 class GeminiConfigurationError(RuntimeError):
     pass
+
+
+class GeminiRateLimitError(RuntimeError):
+    """A retryable Gemini quota response with the provider's requested delay."""
+
+    def __init__(self, retry_after_seconds: float | None, message: str):
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
 
 
 @dataclass(frozen=True)
@@ -50,23 +60,11 @@ class GeminiProvider:
             types.Content(parts=[types.Part.from_text(text=_document_embedding_input(text, title))])
             for text, title in zip(texts, titles, strict=True)
         ]
-        response = self._client.models.embed_content(
-            model=self._settings.gemini_embedding_model,
-            contents=contents,
-            config=types.EmbedContentConfig(
-                output_dimensionality=self._settings.embedding_dimension
-            ),
-        )
+        response = self._embed_content(contents)
         return _extract_embeddings(response, self._settings.embedding_dimension)
 
     def embed_query(self, question: str) -> list[float]:
-        response = self._client.models.embed_content(
-            model=self._settings.gemini_embedding_model,
-            contents=_query_embedding_input(question),
-            config=types.EmbedContentConfig(
-                output_dimensionality=self._settings.embedding_dimension
-            ),
-        )
+        response = self._embed_content(_query_embedding_input(question))
         embeddings = _extract_embeddings(response, self._settings.embedding_dimension)
         if len(embeddings) != 1:
             raise RuntimeError("Gemini returned an unexpected number of query embeddings")
@@ -116,6 +114,18 @@ Evidence:
         except (json.JSONDecodeError, ValueError) as error:
             raise RuntimeError("Gemini returned an invalid grounded-answer payload") from error
 
+    def _embed_content(self, contents: str | Sequence[types.Content]) -> Any:
+        try:
+            return self._client.models.embed_content(
+                model=self._settings.gemini_embedding_model,
+                contents=contents,
+                config=types.EmbedContentConfig(
+                    output_dimensionality=self._settings.embedding_dimension
+                ),
+            )
+        except ClientError as error:
+            _raise_rate_limit_error(error)
+
 
 def validate_answer_draft(draft: GeminiAnswerDraft, allowed_labels: set[str]) -> GeminiAnswerDraft:
     """Remove untrusted labels; a model never gets authority over source identity."""
@@ -151,3 +161,12 @@ def _extract_embeddings(response: Any, expected_dimension: int) -> list[list[flo
             f"Gemini returned embedding dimensions {dimensions}; expected {expected_dimension}."
         )
     return values
+
+
+def _raise_rate_limit_error(error: ClientError) -> None:
+    if error.status_code != 429:
+        raise error
+    message = str(error)
+    delay_match = _RETRY_DELAY.search(message)
+    retry_after = float(delay_match.group(1)) if delay_match else None
+    raise GeminiRateLimitError(retry_after, message) from error

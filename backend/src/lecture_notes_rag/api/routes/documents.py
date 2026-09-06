@@ -22,7 +22,7 @@ def list_documents(
     course: str | None = Query(default=None, max_length=160),
     document_status: str | None = Query(default=None, alias="status", max_length=32),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=30, ge=1, le=100),
+    page_size: int = Query(default=30, ge=1, le=500),
     session: Session = Depends(get_session),
 ) -> DocumentListResponse:
     query = select(Document)

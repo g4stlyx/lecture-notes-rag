@@ -42,7 +42,13 @@ class Settings(BaseSettings):
     retrieval_candidate_count: PositiveInt = 12
     retrieval_context_count: PositiveInt = 6
     max_context_characters: PositiveInt = 30_000
-    embedding_batch_size: PositiveInt = 32
+    # Gemini free-tier accounts commonly have a 100 RPM embedding quota. Larger
+    # request batches and a conservative pacer prevent the worker from burning
+    # through it in seconds.
+    embedding_batch_size: PositiveInt = 96
+    embedding_requests_per_minute: PositiveInt = 80
+    embedding_max_retries: PositiveInt = 8
+    embedding_max_retry_delay_seconds: PositiveInt = 120
 
     @model_validator(mode="after")
     def validate_vector_dimension(self) -> Settings:
