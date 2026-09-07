@@ -45,7 +45,10 @@ class Settings(BaseSettings):
     # Gemini free-tier accounts commonly have a 100 RPM embedding quota. Larger
     # request batches and a conservative pacer prevent the worker from burning
     # through it in seconds.
-    embedding_batch_size: PositiveInt = 96
+    # Gemini's BatchEmbedContents endpoint accepts many inputs at once, but free
+    # tier quota is charged per embedded content. Ten is a practical transport
+    # batch that stays within the per-minute request budget when paced by item.
+    embedding_batch_size: PositiveInt = 10
     embedding_requests_per_minute: PositiveInt = 80
     embedding_max_retries: PositiveInt = 8
     embedding_max_retry_delay_seconds: PositiveInt = 120

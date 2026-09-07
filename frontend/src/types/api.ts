@@ -55,7 +55,7 @@ export interface ChatResponse {
 
 export interface IngestionJob {
   id: string;
-  status: "queued" | "running" | "paused" | "completed" | "failed";
+  status: "queued" | "running" | "paused" | "interrupted" | "completed" | "failed";
   discoveredCount: number;
   processedCount: number;
   skippedCount: number;

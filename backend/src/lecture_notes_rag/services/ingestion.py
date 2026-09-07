@@ -210,7 +210,9 @@ class IngestionService:
 
     def _embed_batch_with_retry(self, document: Document, batch: list[Chunk]) -> list[list[float]]:
         for attempt in range(1, self._settings.embedding_max_retries + 1):
-            self._embedding_pacer.wait_for_slot()
+            # Gemini accounts for each content within BatchEmbedContents against
+            # the embedding request quota, not just the HTTP transport request.
+            self._embedding_pacer.wait_for_slot(units=len(batch))
             try:
                 return self._provider.embed_documents(
                     [chunk.text for chunk in batch],

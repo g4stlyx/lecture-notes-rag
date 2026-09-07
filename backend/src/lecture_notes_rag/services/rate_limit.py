@@ -19,12 +19,14 @@ class RequestPacer:
         self._sleep = sleep
         self._next_request_at = 0.0
 
-    def wait_for_slot(self) -> None:
+    def wait_for_slot(self, units: int = 1) -> None:
+        if units < 1:
+            raise ValueError("units must be at least one")
         now = self._clock()
         if self._next_request_at > now:
             self._sleep(self._next_request_at - now)
             now = self._clock()
-        self._next_request_at = now + self._minimum_interval
+        self._next_request_at = now + (self._minimum_interval * units)
 
     def defer_for(self, seconds: float) -> None:
         self._next_request_at = max(self._next_request_at, self._clock() + seconds)

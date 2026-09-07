@@ -13,10 +13,10 @@ def test_request_pacer_spaces_out_embedding_requests() -> None:
         current_time[0] += seconds
 
     pacer = RequestPacer(60, clock=clock, sleep=sleep)
-    pacer.wait_for_slot()
+    pacer.wait_for_slot(units=2)
     pacer.wait_for_slot()
 
-    assert waits == [1.0]
+    assert waits == [2.0]
 
 
 def test_request_pacer_honors_provider_retry_delay() -> None:
@@ -35,3 +35,14 @@ def test_request_pacer_honors_provider_retry_delay() -> None:
     pacer.wait_for_slot()
 
     assert waits == [25]
+
+
+def test_request_pacer_rejects_non_positive_request_cost() -> None:
+    pacer = RequestPacer(60)
+
+    try:
+        pacer.wait_for_slot(units=0)
+    except ValueError as error:
+        assert "at least one" in str(error)
+    else:
+        raise AssertionError("Expected invalid request cost to fail")

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from lecture_notes_rag.api.routes import chat, documents, health, ingestion
 from lecture_notes_rag.core.logging import configure_logging
 from lecture_notes_rag.core.settings import get_settings
+from lecture_notes_rag.workers.recovery import recover_interrupted_ingestion_jobs
 
 
 @asynccontextmanager
@@ -15,6 +16,14 @@ async def lifespan(_: FastAPI):
     settings = get_settings()
     configure_logging(settings.log_level)
     settings.resolved_runtime_root.mkdir(parents=True, exist_ok=True)
+    try:
+        recover_interrupted_ingestion_jobs()
+    except Exception:
+        # The health endpoint will expose an unavailable database; do not make
+        # local startup impossible solely because recovery could not run.
+        import logging
+
+        logging.getLogger(__name__).exception("Could not recover interrupted ingestion jobs")
     yield
 
 

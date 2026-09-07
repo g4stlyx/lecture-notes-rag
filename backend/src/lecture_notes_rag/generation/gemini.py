@@ -15,7 +15,9 @@ from lecture_notes_rag.domain.schemas import GeminiAnswerDraft
 
 _JSON_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
 _CITATION_MARKER = re.compile(r"\[(S\d+)]")
-_RETRY_DELAY = re.compile(r"retry(?:\s+in|Delay[^0-9]*)([0-9]+(?:\.[0-9]+)?)s", re.IGNORECASE)
+_RETRY_DELAY = re.compile(
+    r"retry(?:\s+in\s+|Delay[^0-9]*)([0-9]+(?:\.[0-9]+)?)s", re.IGNORECASE
+)
 
 
 class GeminiConfigurationError(RuntimeError):
@@ -164,7 +166,10 @@ def _extract_embeddings(response: Any, expected_dimension: int) -> list[list[flo
 
 
 def _raise_rate_limit_error(error: ClientError) -> None:
-    if error.status_code != 429:
+    # google-genai exposes the HTTP status as `code`; `status_code` belongs to
+    # the underlying HTTP response and is not part of ClientError's public API.
+    status_code = getattr(error, "code", getattr(error, "status_code", None))
+    if status_code != 429:
         raise error
     message = str(error)
     delay_match = _RETRY_DELAY.search(message)

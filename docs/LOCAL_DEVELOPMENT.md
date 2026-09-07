@@ -57,7 +57,13 @@ On Gemini's free tier, corpus indexing is intentionally rate-limited. If Gemini
 returns a quota response without a usable retry window, the job is shown as
 **paused** instead of failing the rest of the corpus. Start indexing again after
 the quota resets: unchanged ready documents are skipped and only outstanding
-documents are retried.
+documents are retried. The default worker paces individual embedding inputs at
+80 per minute, below the 100-RPM limit reported by the affected Gemini tier;
+expect a full first pass over this corpus to take hours, not minutes.
+
+In local development, ingestion runs inside the API process. Stopping Uvicorn
+interrupts that work; on the next backend startup, unfinished jobs are marked
+**interrupted** automatically. Start a new non-force indexing job to resume.
 
 ## Verification commands
 
