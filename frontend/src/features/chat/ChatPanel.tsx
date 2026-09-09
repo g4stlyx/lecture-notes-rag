@@ -29,6 +29,10 @@ export function ChatPanel({ documents }: ChatPanelProps) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await askQuestionFromNotes();
+  }
+
+  async function askQuestionFromNotes() {
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion || isAsking) {
       return;
@@ -44,7 +48,7 @@ export function ChatPanel({ documents }: ChatPanelProps) {
       });
       setResponse(answer);
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : "The answer request failed.");
+      setError(messageForChatError(caught));
     } finally {
       setIsAsking(false);
     }
@@ -107,7 +111,17 @@ export function ChatPanel({ documents }: ChatPanelProps) {
         </p>
       )}
 
-      {error && <p className="error-message" role="alert">{error}</p>}
+      {error && (
+        <section className="error-message" role="alert">
+          <div>
+            <strong>Answer generation is temporarily unavailable</strong>
+            <p>{error}</p>
+          </div>
+          <button onClick={() => void askQuestionFromNotes()} disabled={isAsking} type="button">
+            Try again
+          </button>
+        </section>
+      )}
       {response && (
         <section className="answer-card" aria-live="polite">
           <div className="answer-heading">
@@ -123,4 +137,14 @@ export function ChatPanel({ documents }: ChatPanelProps) {
       )}
     </main>
   );
+}
+
+function messageForChatError(error: unknown): string {
+  if (error instanceof ApiError && error.status === 503) {
+    return "Gemini is experiencing high demand. Your notes are indexed and safe; wait a moment, then retry.";
+  }
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  return "The answer request failed before a response was generated. Please try again.";
 }

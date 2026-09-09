@@ -8,7 +8,7 @@ from typing import Any
 
 from google import genai
 from google.genai import types
-from google.genai.errors import ClientError
+from google.genai.errors import APIError, ClientError
 
 from lecture_notes_rag.core.settings import Settings
 from lecture_notes_rag.domain.schemas import GeminiAnswerDraft
@@ -30,6 +30,10 @@ class GeminiRateLimitError(RuntimeError):
     def __init__(self, retry_after_seconds: float | None, message: str):
         super().__init__(message)
         self.retry_after_seconds = retry_after_seconds
+
+
+class GeminiGenerationUnavailableError(RuntimeError):
+    """Gemini could not generate an answer due to a temporary provider outage."""
 
 
 @dataclass(frozen=True)
@@ -99,19 +103,22 @@ Question:
 Evidence:
 {evidence}
 """
-        response = self._client.models.generate_content(
-            model=self._settings.gemini_generation_model,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.1,
-                # This application never passes callable tools to Gemini. The
-                # SDK currently enables AFC by default, which produces a
-                # misleading warning for direct generate_content calls and
-                # wraps this simple one-request operation unnecessarily.
-                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-            ),
-        )
+        try:
+            response = self._client.models.generate_content(
+                model=self._settings.gemini_generation_model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                    # This application never passes callable tools to Gemini. The
+                    # SDK currently enables AFC by default, which produces a
+                    # misleading warning for direct generate_content calls and
+                    # wraps this simple one-request operation unnecessarily.
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                ),
+            )
+        except APIError as error:
+            _raise_generation_unavailable(error)
         raw_text = getattr(response, "text", None)
         if not raw_text:
             raise RuntimeError("Gemini returned no answer text")
@@ -180,3 +187,13 @@ def _raise_rate_limit_error(error: ClientError) -> None:
     delay_match = _RETRY_DELAY.search(message)
     retry_after = float(delay_match.group(1)) if delay_match else None
     raise GeminiRateLimitError(retry_after, message) from error
+
+
+def _raise_generation_unavailable(error: APIError) -> None:
+    """Convert temporary upstream generation failures into a safe API response."""
+    if error.code not in {429, 500, 502, 503, 504}:
+        raise error
+    raise GeminiGenerationUnavailableError(
+        "Gemini is temporarily busy due to provider demand. Your retrieved notes are intact; "
+        "please try again in a moment."
+    ) from error

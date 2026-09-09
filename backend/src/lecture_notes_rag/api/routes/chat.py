@@ -20,7 +20,7 @@ from lecture_notes_rag.domain.schemas import (
     SearchResponse,
 )
 from lecture_notes_rag.generation.embeddings import EmbeddingProvider
-from lecture_notes_rag.generation.gemini import GeminiProvider
+from lecture_notes_rag.generation.gemini import GeminiGenerationUnavailableError, GeminiProvider
 from lecture_notes_rag.persistence.database import get_session
 from lecture_notes_rag.retrieval.hybrid import RetrievalService, search_hit
 from lecture_notes_rag.services.chat import ChatService
@@ -54,6 +54,8 @@ def chat(
         return ChatService(session, embedding_provider, answer_provider, settings).answer(payload)
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except GeminiGenerationUnavailableError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @router.post("/chat/stream")
@@ -71,6 +73,8 @@ def stream_chat(
         ).answer(payload)
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except GeminiGenerationUnavailableError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
     def events() -> Iterator[str]:
         for word in response.answer.split(" "):
