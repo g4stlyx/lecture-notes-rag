@@ -5,12 +5,14 @@
 - Docker Desktop running.
 - `uv` for the Python backend.
 - Node.js 22+ for the React client.
-- A Gemini API key in the root `.env` file.
+- Ollama running locally with `qwen3-embedding:0.6b` pulled.
+- A Gemini API key in the root `.env` file only if you want generated chat answers.
 
 ## One-time setup
 
 1. Copy `.env.example` to `.env` if you do not already have one. Keep the
-   existing `GEMINI_API_KEY` value private.
+   existing `GEMINI_API_KEY` value private. The default embedding provider is
+   local Ollama/Qwen, using 1,024-dimensional vectors.
 2. Keep `POSTGRES_*` and `DATABASE_URL` consistent. The development defaults
    already match each other.
 3. Start the database from the repository root:
@@ -49,17 +51,24 @@ npm run dev
 ```
 
 Open `http://127.0.0.1:5173`. Confirm `/api/v1/health` reports `status: ok`
-before selecting **Index corpus**. Indexing sends chunk text to Gemini to create
-embeddings and will consume API quota; it is deliberately never triggered at
-application startup.
+before selecting **Index corpus**. Indexing uses the local Ollama model by
+default, so document embeddings never leave your machine and do not consume a
+Gemini quota. Confirm the local model is available first:
 
-On Gemini's free tier, corpus indexing is intentionally rate-limited. If Gemini
-returns a quota response without a usable retry window, the job is shown as
-**paused** instead of failing the rest of the corpus. Start indexing again after
-the quota resets: unchanged ready documents are skipped and only outstanding
-documents are retried. The default worker paces individual embedding inputs at
-80 per minute, below the 100-RPM limit reported by the affected Gemini tier;
-expect a full first pass over this corpus to take hours, not minutes.
+```powershell
+ollama list
+ollama run qwen3-embedding:0.6b "embedding health check"
+```
+
+Changing the embedding provider or embedding dimension always requires a full
+re-index. The application automatically reprocesses every document and excludes
+the previous vector space from retrieval until that work is complete; do not mix
+vectors created by different embedding models.
+
+To use Gemini embeddings instead, set `EMBEDDING_PROVIDER=gemini` and
+`EMBEDDING_DIMENSION=1536`. Gemini embedding ingestion is rate-limited. If the
+provider returns a quota response without a usable retry window, the job is shown
+as **paused** instead of failing the rest of the corpus.
 
 In local development, ingestion runs inside the API process. Stopping Uvicorn
 interrupts that work; on the next backend startup, unfinished jobs are marked

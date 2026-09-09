@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import AliasChoices, Field, PositiveInt, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,7 +30,11 @@ class Settings(BaseSettings):
     )
     gemini_generation_model: str = "gemini-3.7-flash"
     gemini_embedding_model: str = "gemini-embedding-2"
-    embedding_dimension: PositiveInt = 1536
+    embedding_provider: Literal["gemini", "ollama"] = "ollama"
+    embedding_dimension: PositiveInt = 1024
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_embedding_model: str = "qwen3-embedding:0.6b"
+    ollama_request_timeout_seconds: PositiveInt = 120
 
     database_url: str = (
         "postgresql+psycopg://lecture_notes:lecture_notes_dev@localhost:5432/lecture_notes"
@@ -55,10 +60,16 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_vector_dimension(self) -> Settings:
-        if self.embedding_dimension != 1536:
+        if self.embedding_provider == "gemini" and self.embedding_dimension != 1536:
             raise ValueError(
-                "EMBEDDING_DIMENSION must be 1536 until a matching pgvector migration is applied."
+                "GEMINI_EMBEDDING_MODEL requires EMBEDDING_DIMENSION=1536."
             )
+        if (
+            self.embedding_provider == "ollama"
+            and self.ollama_embedding_model == "qwen3-embedding:0.6b"
+            and self.embedding_dimension != 1024
+        ):
+            raise ValueError("qwen3-embedding:0.6b requires EMBEDDING_DIMENSION=1024.")
         return self
 
     @property

@@ -4,9 +4,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from lecture_notes_rag.api.dependencies import require_gemini_provider
+from lecture_notes_rag.api.dependencies import require_embedding_provider
 from lecture_notes_rag.domain.schemas import IngestionJobRequest, IngestionJobResponse
-from lecture_notes_rag.generation.gemini import GeminiProvider
+from lecture_notes_rag.generation.embeddings import EmbeddingProvider
 from lecture_notes_rag.persistence.database import get_session
 from lecture_notes_rag.persistence.models import IngestionJob
 from lecture_notes_rag.workers.ingestion_worker import run_ingestion_job
@@ -19,7 +19,7 @@ def create_ingestion_job(
     payload: IngestionJobRequest,
     background_tasks: BackgroundTasks,
     session: Session = Depends(get_session),
-    _: GeminiProvider = Depends(require_gemini_provider),
+    _: EmbeddingProvider = Depends(require_embedding_provider),
 ) -> IngestionJobResponse:
     running = session.scalar(
         select(IngestionJob).where(IngestionJob.status.in_(["queued", "running"]))

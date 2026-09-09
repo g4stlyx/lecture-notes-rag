@@ -7,7 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
-from lecture_notes_rag.api.dependencies import app_settings, require_gemini_provider
+from lecture_notes_rag.api.dependencies import (
+    app_settings,
+    require_embedding_provider,
+    require_gemini_provider,
+)
 from lecture_notes_rag.core.settings import Settings
 from lecture_notes_rag.domain.schemas import (
     ChatRequest,
@@ -15,6 +19,7 @@ from lecture_notes_rag.domain.schemas import (
     SearchRequest,
     SearchResponse,
 )
+from lecture_notes_rag.generation.embeddings import EmbeddingProvider
 from lecture_notes_rag.generation.gemini import GeminiProvider
 from lecture_notes_rag.persistence.database import get_session
 from lecture_notes_rag.retrieval.hybrid import RetrievalService, search_hit
@@ -27,7 +32,7 @@ router = APIRouter(tags=["chat"])
 def search(
     payload: SearchRequest,
     session: Session = Depends(get_session),
-    provider: GeminiProvider = Depends(require_gemini_provider),
+    provider: EmbeddingProvider = Depends(require_embedding_provider),
     settings: Settings = Depends(app_settings),
 ) -> SearchResponse:
     results = RetrievalService(session, provider, settings).search(payload)
@@ -41,11 +46,12 @@ def search(
 def chat(
     payload: ChatRequest,
     session: Session = Depends(get_session),
-    provider: GeminiProvider = Depends(require_gemini_provider),
+    embedding_provider: EmbeddingProvider = Depends(require_embedding_provider),
+    answer_provider: GeminiProvider = Depends(require_gemini_provider),
     settings: Settings = Depends(app_settings),
 ) -> ChatResponse:
     try:
-        return ChatService(session, provider, settings).answer(payload)
+        return ChatService(session, embedding_provider, answer_provider, settings).answer(payload)
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
@@ -54,12 +60,15 @@ def chat(
 def stream_chat(
     payload: ChatRequest,
     session: Session = Depends(get_session),
-    provider: GeminiProvider = Depends(require_gemini_provider),
+    embedding_provider: EmbeddingProvider = Depends(require_embedding_provider),
+    answer_provider: GeminiProvider = Depends(require_gemini_provider),
     settings: Settings = Depends(app_settings),
 ) -> StreamingResponse:
     """SSE compatibility endpoint. Citation validation completes before sources are emitted."""
     try:
-        response = ChatService(session, provider, settings).answer(payload)
+        response = ChatService(
+            session, embedding_provider, answer_provider, settings
+        ).answer(payload)
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 

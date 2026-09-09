@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from lecture_notes_rag.core.settings import Settings
 from lecture_notes_rag.domain.schemas import SearchHit, SearchRequest, SourceCitation
-from lecture_notes_rag.generation.gemini import GeminiProvider, GroundingContext
+from lecture_notes_rag.generation.embeddings import EmbeddingProvider
+from lecture_notes_rag.generation.gemini import GroundingContext
 from lecture_notes_rag.persistence.models import Chunk, Document
 
 RRF_K = 60
@@ -24,7 +26,7 @@ class RankedChunk:
 
 
 class RetrievalService:
-    def __init__(self, session: Session, provider: GeminiProvider, settings: Settings):
+    def __init__(self, session: Session, provider: EmbeddingProvider, settings: Settings):
         self._session = session
         self._provider = provider
         self._settings = settings
@@ -38,7 +40,12 @@ class RetrievalService:
 
     def _base_query(self, request: SearchRequest) -> Select[tuple[Chunk, Document]]:
         query = select(Chunk, Document).join(Document, Chunk.document_id == Document.id)
-        query = query.where(Document.status == "ready", Chunk.embedding.is_not(None))
+        query = query.where(
+            Document.status == "ready",
+            Chunk.embedding.is_not(None),
+            Chunk.embedding_model == self._provider.embedding_model,
+            Chunk.embedding_dimension == self._provider.embedding_dimension,
+        )
         if request.semester is not None:
             query = query.where(Document.semester == request.semester)
         if request.course:
@@ -50,7 +57,8 @@ class RetrievalService:
     def _vector_search(
         self, query_embedding: list[float], request: SearchRequest, limit: int
     ) -> list[tuple[Chunk, Document]]:
-        distance = Chunk.embedding.cosine_distance(query_embedding)
+        embedding = Chunk.embedding.cast(Vector(self._provider.embedding_dimension))
+        distance = embedding.cosine_distance(query_embedding)
         rows = self._session.execute(
             self._base_query(request).order_by(distance).limit(limit)
         ).all()

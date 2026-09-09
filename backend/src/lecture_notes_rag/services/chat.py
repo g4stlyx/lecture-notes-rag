@@ -7,15 +7,23 @@ from sqlalchemy.orm import Session
 
 from lecture_notes_rag.core.settings import Settings
 from lecture_notes_rag.domain.schemas import ChatRequest, ChatResponse
+from lecture_notes_rag.generation.embeddings import EmbeddingProvider
 from lecture_notes_rag.generation.gemini import GeminiProvider, validate_answer_draft
 from lecture_notes_rag.persistence.models import Conversation, Message
 from lecture_notes_rag.retrieval.hybrid import RetrievalService, grounding_context, source_citation
 
 
 class ChatService:
-    def __init__(self, session: Session, provider: GeminiProvider, settings: Settings):
+    def __init__(
+        self,
+        session: Session,
+        embedding_provider: EmbeddingProvider,
+        answer_provider: GeminiProvider,
+        settings: Settings,
+    ):
         self._session = session
-        self._provider = provider
+        self._embedding_provider = embedding_provider
+        self._answer_provider = answer_provider
         self._settings = settings
 
     def answer(self, request: ChatRequest) -> ChatResponse:
@@ -32,7 +40,7 @@ class ChatService:
             )
         )
 
-        retrieval = RetrievalService(self._session, self._provider, self._settings)
+        retrieval = RetrievalService(self._session, self._embedding_provider, self._settings)
         results = retrieval.search(request)
         result_context = results[: self._settings.retrieval_context_count]
         sources = [
@@ -44,7 +52,7 @@ class ChatService:
             grounded = False
             model = None
         else:
-            draft = self._provider.answer(
+            draft = self._answer_provider.answer(
                 request.question,
                 [
                     grounding_context(result, source.label)

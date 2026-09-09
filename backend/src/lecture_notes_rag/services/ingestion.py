@@ -3,13 +3,15 @@ from __future__ import annotations
 import logging
 import time
 from datetime import UTC, datetime
+from hashlib import sha256
 from uuid import UUID
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from lecture_notes_rag.core.settings import Settings
-from lecture_notes_rag.generation.gemini import GeminiProvider, GeminiRateLimitError
+from lecture_notes_rag.generation.embeddings import EmbeddingProvider
+from lecture_notes_rag.generation.gemini import GeminiRateLimitError
 from lecture_notes_rag.ingestion.chunking.page_chunker import chunk_pages
 from lecture_notes_rag.ingestion.extractors.models import ExtractionResult
 from lecture_notes_rag.ingestion.extractors.ocr import OcrUnavailableError, extract_pdf_with_ocr
@@ -20,7 +22,7 @@ from lecture_notes_rag.persistence.models import Chunk, Document, IngestionJob, 
 from lecture_notes_rag.services.rate_limit import RequestPacer
 
 logger = logging.getLogger(__name__)
-PIPELINE_VERSION = "1"
+PIPELINE_VERSION = "2"
 
 
 class EmbeddingQuotaPaused(RuntimeError):
@@ -28,10 +30,14 @@ class EmbeddingQuotaPaused(RuntimeError):
 
 
 class IngestionService:
-    def __init__(self, session: Session, provider: GeminiProvider, settings: Settings):
+    def __init__(self, session: Session, provider: EmbeddingProvider, settings: Settings):
         self._session = session
         self._provider = provider
         self._settings = settings
+        embedding_signature = sha256(
+            f"{provider.embedding_model}:{provider.embedding_dimension}".encode()
+        ).hexdigest()[:12]
+        self._pipeline_version = f"{PIPELINE_VERSION}-emb-{embedding_signature}"
         self._embedding_pacer = RequestPacer(settings.embedding_requests_per_minute)
 
     def run(self, job_id: UUID) -> None:
@@ -90,7 +96,7 @@ class IngestionService:
             existing
             and existing.status == "ready"
             and existing.content_hash == file.content_hash
-            and existing.pipeline_version == PIPELINE_VERSION
+            and existing.pipeline_version == self._pipeline_version
         )
 
     def _ingest_file(self, file: DiscoveredFile) -> None:
@@ -116,7 +122,7 @@ class IngestionService:
         document.page_count = len(extraction.pages)
         document.extraction_method = extraction.extraction_method
         document.extraction_quality = extraction.extraction_quality
-        document.pipeline_version = PIPELINE_VERSION
+        document.pipeline_version = self._pipeline_version
         for page in extraction.pages:
             document.pages.append(
                 Page(
@@ -202,13 +208,19 @@ class IngestionService:
             batch = chunks[offset : offset + self._settings.embedding_batch_size]
             vectors = self._embed_batch_with_retry(document, batch)
             if len(vectors) != len(batch):
-                raise RuntimeError("Gemini returned an incomplete embedding batch")
+                raise RuntimeError("Embedding provider returned an incomplete embedding batch")
             for chunk, vector in zip(batch, vectors, strict=True):
                 chunk.embedding = vector
-                chunk.embedding_model = self._settings.gemini_embedding_model
+                chunk.embedding_model = self._provider.embedding_model
                 chunk.embedding_dimension = len(vector)
 
     def _embed_batch_with_retry(self, document: Document, batch: list[Chunk]) -> list[list[float]]:
+        if not self._provider.requires_embedding_pacing:
+            return self._provider.embed_documents(
+                [chunk.text for chunk in batch],
+                [document.display_name] * len(batch),
+            )
+
         for attempt in range(1, self._settings.embedding_max_retries + 1):
             # Gemini accounts for each content within BatchEmbedContents against
             # the embedding request quota, not just the HTTP transport request.

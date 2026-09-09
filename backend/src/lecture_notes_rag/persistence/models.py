@@ -99,7 +99,10 @@ class Chunk(Base):
     content_hash: Mapped[str] = mapped_column(String(64))
     parser_version: Mapped[str] = mapped_column(String(32), default="1")
     chunker_version: Mapped[str] = mapped_column(String(32), default="1")
-    embedding: Mapped[list[float] | None] = mapped_column(Vector(1536), nullable=True)
+    # A provider-specific model and dimension accompany every vector. The
+    # dimensionless pgvector column allows a future provider migration without
+    # rewriting the schema; retrieval always filters to one vector space.
+    embedding: Mapped[list[float] | None] = mapped_column(Vector(), nullable=True)
     embedding_model: Mapped[str | None] = mapped_column(String(128))
     embedding_dimension: Mapped[int | None] = mapped_column(Integer)
     search_vector: Mapped[Any] = mapped_column(
