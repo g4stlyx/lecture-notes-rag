@@ -105,6 +105,11 @@ Evidence:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=0.1,
+                # This application never passes callable tools to Gemini. The
+                # SDK currently enables AFC by default, which produces a
+                # misleading warning for direct generate_content calls and
+                # wraps this simple one-request operation unnecessarily.
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
             ),
         )
         raw_text = getattr(response, "text", None)
