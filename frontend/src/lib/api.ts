@@ -28,7 +28,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export function listDocuments(): Promise<DocumentListResponse> {
-  return request<DocumentListResponse>("/documents?pageSize=500");
+  return request<DocumentListResponse>("/documents?page_size=500");
 }
 
 export function createIngestionJob(force = false): Promise<IngestionJob> {
